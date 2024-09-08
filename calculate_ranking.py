@@ -1,8 +1,6 @@
 import os
 from collections import defaultdict
-import matplotlib.pyplot as plt
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 #Team Data
 team_data = [
@@ -24,44 +22,66 @@ team_data = [
     {'team': 'West Virginia', 'abbreviation': 'WVU', 'logo_path': 'big 12 logos/wvu.png'}
 ]
 
-# Function to plot the ranking data with logos
-def plot_rankings_with_logos(ranking_data, team_data):
-    # Create a mapping of abbreviations to logos from team_data
+# Function to create a professional-looking graphic for team rankings
+def create_ranking_graphic(ranking_data, team_data, output_image_path='rankings.png'):
+    # Set up some parameters
+    width, height = 800, 1000
+    background_color = (255, 255, 255)  # White background
+    text_color = (0, 0, 0)  # Black text
+    line_color = (200, 200, 200)  # Light gray lines
+    
+    # Create the canvas
+    img = Image.new('RGB', (width, height), color=background_color)
+    draw = ImageDraw.Draw(img)
+
+    # Load a font (use a default PIL font if you don't have a custom one)
+    try:
+        font = ImageFont.truetype("arial.ttf", 24)  # Adjust font size
+    except IOError:
+        font = ImageFont.load_default()
+
+    # Set header and starting position for text
+    y_offset = 50
+    header = "Big 12 Football Team Rankings"
+    draw.text((width // 2 - 200, y_offset), header, font=font, fill=text_color)
+    
+    # Increment y_offset for spacing
+    y_offset += 50
+
+    # Define row height and image size for logos
+    row_height = 70
+    logo_size = (50, 50)
+
+    # Prepare a dictionary to map team abbreviation to the logo path
     logo_map = {team['abbreviation']: team['logo_path'] for team in team_data}
 
-    # Extract team names, average rankings, highest, and lowest
-    teams, avg_rankings, highest_rankings, lowest_rankings = zip(*ranking_data)
-    
-    fig, ax = plt.subplots(figsize=(10, 8))
+    # Loop through ranking data and add rows with logos and text
+    for team, avg, high, low in ranking_data:
+        # Draw horizontal separator line
+        draw.line([(0, y_offset), (width, y_offset)], fill=line_color, width=2)
+        y_offset += 10
 
-    # Create a horizontal bar plot for average rankings
-    y_pos = range(len(teams))
-    ax.barh(y_pos, avg_rankings, color='skyblue', edgecolor='black')
-    
-    # Add the highest and lowest rankings as text annotations
-    for i, (avg, high, low) in enumerate(zip(avg_rankings, highest_rankings, lowest_rankings)):
-        ax.text(avg + 0.2, i, f'High: {high}', va='center', fontsize=9)
-        ax.text(avg + 0.8, i, f'Low: {low}', va='center', fontsize=9)
-    
-    # Add team logos next to each bar
-    for i, team in enumerate(teams):
-        logo_path = logo_map.get(team, None)
+        # Get the logo path and open the logo image
+        logo_path = logo_map.get(team)
         if logo_path:
-            img = Image.open(logo_path)
-            img.thumbnail((40, 40), Image.ANTIALIAS)
-            imagebox = OffsetImage(img, zoom=0.5)
-            ab = AnnotationBbox(imagebox, (0, i), frameon=False, boxcoords="offset points", pad=0.5, xybox=(-40, 0))
-            ax.add_artist(ab)
+            try:
+                logo = Image.open(logo_path).resize(logo_size)
+                img.paste(logo, (50, y_offset))
+            except IOError:
+                print(f"Could not open logo for {team}")
+        
+        # Add team name and stats next to the logo
+        draw.text((120, y_offset), f"{team}", font=font, fill=text_color)
+        draw.text((300, y_offset), f"Avg: {avg:.2f}", font=font, fill=text_color)
+        draw.text((400, y_offset), f"High: {high}", font=font, fill=text_color)
+        draw.text((500, y_offset), f"Low: {low}", font=font, fill=text_color)
 
-    # Set labels, title, and adjust layout
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(teams)
-    ax.set_xlabel('Average Ranking')
-    ax.set_title('Big 12 Football Team Rankings')
-    plt.tight_layout()
+        # Increment y_offset for the next row
+        y_offset += row_height
 
-    # Show the plot
-    plt.show()
+    # Save the image
+    img.save(output_image_path)
+    print(f"Ranking graphic saved as {output_image_path}")
 
 
 # Function to calculate average rankings and find highest/lowest ranks
@@ -101,4 +121,4 @@ def average_rankings_from_folder(folder_path):
 folder_path = 'rankings/week 2/'  # Specify your folder path here
 rankings = average_rankings_from_folder(folder_path)
 
-plot_rankings_with_logos(rankings, team_data)
+create_ranking_graphic(rankings, team_data)
