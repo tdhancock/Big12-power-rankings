@@ -138,7 +138,7 @@ def average_rankings_from_folder(folder_path):
     return sorted_rankings
 
 # Example usage
-folder_path = 'rankings/week3/'  # Specify your folder path here
+folder_path = 'rankings/week6/'  # Specify your folder path here
 rankings = average_rankings_from_folder(folder_path)
 
 for team in rankings:
